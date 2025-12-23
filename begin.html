@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bắn tim 3-2-1 + Chữ dạng chấm</title>
+
+<style>
+  :root{
+    --bg1:#0f1724;
+    --bg2:#1d2750;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto;
+    overflow:hidden;
+    background:linear-gradient(120deg,var(--bg1),var(--bg2));
+    background-size:300% 300%;
+    animation:bgMove 18s linear infinite;
+  }
+
+  @keyframes bgMove{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
+
+  /* canvas nền chữ (sau cùng) */
+  #matrix-canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    pointer-events:none;
+    display:block;
+  }
+
+  /* canvas nền sao (trên chữ) */
+  #bg-canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:1;
+    pointer-events:none;
+    display:block;
+  }
+
+  /* canvas chữ dạng chấm (trên sao, dưới tim) */
+  #dots-canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:2;
+    pointer-events:none;
+    display:block;
+  }
+
+  /* canvas hiệu ứng hạt (trên cùng) */
+  #fx-canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:4;
+    pointer-events:none;
+    display:block;
+  }
+
+  /* scene trên cùng */
+  .scene{
+    position:absolute;
+    inset:0;
+    background:transparent;
+    overflow:hidden;
+    z-index:3;
+  }
+
+  .animal{
+    position:absolute;
+    width:250px;
+    left:10px;
+    bottom:-50px;
+    pointer-events:none;
+
+    image-rendering:auto;
+    mix-blend-mode:screen;
+    filter:drop-shadow(0 0 5px #000);
+  }
+
+  .heart{
+    position:absolute;
+    font-size:30px;
+    pointer-events:none;
+
+    will-change: transform;
+    transform: translate3d(0,0,0) translate(-50%, -50%);
+  }
+
+  /* LỚP CLICK ĐỂ BẮT ĐẦU */
+  #tap-start{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    background:rgba(0,0,0,0.35);
+    color:#fff;
+    font-size:24px;
+    font-weight:800;
+    letter-spacing:0.6px;
+    backdrop-filter: blur(2px);
+    transition:opacity .35s ease;
+    user-select:none;
+    cursor:pointer;
+    text-align:center;
+    padding:20px;
+  }
+  #tap-start.hide{
+    opacity:0;
+    pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<!-- NỀN CHỮ -->
+<canvas id="matrix-canvas"></canvas>
+<!-- NỀN SAO -->
+<canvas id="bg-canvas"></canvas>
+<!-- CHỮ DẠNG CHẤM -->
+<canvas id="dots-canvas"></canvas>
+<!-- HIỆU ỨNG HẠT -->
+<canvas id="fx-canvas"></canvas>
+
+<!-- NHẠC NỀN -->
+<audio id="bg-music" src="f.mp3" preload="auto" loop muted playsinline></audio>
+
+<!-- CLICK ĐỂ BẮT ĐẦU -->
+<div id="tap-start">Click vào</div>
+
+<div class="scene" id="scene">
+  <img src="po2.png" class="animal" id="animal">
+</div>
+
+<script>
+/* ================== NỀN CHỮ CHẠY DỌC ================== */
+let mw = innerWidth, mh = innerHeight;
+const matrixCanvas = document.getElementById("matrix-canvas");
+const mctx = matrixCanvas.getContext("2d");
+
+function fitMatrix(){
+  mw = innerWidth; mh = innerHeight;
+  matrixCanvas.width = mw;
+  matrixCanvas.height = mh;
+}
+fitMatrix();
+
+const PHRASES_BG = ["Minh Hân xinh đẹp", "Minh Hân đáng iu"];
+const mFont = 20;
+const FIXED_SPEED = 0.015;
+
+let mCols, mDrops=[], mSpeeds=[];
+
+function initMatrix(){
+  mCols = Math.ceil(mw / mFont);
+  mDrops = new Array(mCols).fill(0).map(()=>Math.random()*(mh/mFont));
+  mSpeeds = new Array(mCols).fill(FIXED_SPEED);
+}
+initMatrix();
+
+function drawMatrix(){
+  mctx.fillStyle = "rgba(5, 0, 10, 0.12)";
+  mctx.fillRect(0,0,mw,mh);
+
+  mctx.font = `${mFont}px monospace`;
+
+  for(let i=0;i<mCols;i++){
+    const phrase = PHRASES_BG[Math.floor(Math.random()*PHRASES_BG.length)];
+    const x = i * mFont;
+    const baseY = mDrops[i] * mFont;
+
+    const bright = Math.random();
+    if(bright > 0.9){
+      mctx.fillStyle = "rgba(255, 120, 220, 0.9)";
+    }else if(bright > 0.6){
+      mctx.fillStyle = "rgba(200, 80, 255, 0.6)";
+    }else{
+      mctx.fillStyle = "rgba(160, 60, 200, 0.25)";
+    }
+
+    for(let j=0; j<phrase.length; j++){
+      mctx.fillText(phrase[j], x, baseY + j*mFont);
+    }
+
+    mDrops[i] -= mSpeeds[i];
+
+    if(baseY + phrase.length*mFont < -60){
+      mDrops[i] = mh/mFont + Math.random()*10;
+      mSpeeds[i] = FIXED_SPEED;
+    }
+  }
+
+  requestAnimationFrame(drawMatrix);
+}
+
+addEventListener("resize", ()=>{
+  fitMatrix();
+  initMatrix();
+});
+drawMatrix();
+/* ================== HẾT NỀN CHỮ ================== */
+
+
+/* ================== NỀN SAO ================== */
+let w = innerWidth, h = innerHeight;
+const starCanvas = document.getElementById("bg-canvas");
+const starCtx = starCanvas.getContext("2d");
+
+function fitStars(){
+  w = innerWidth; h = innerHeight;
+  starCanvas.width = w;
+  starCanvas.height = h;
+}
+addEventListener("resize", ()=>{ fitStars(); initStars(); });
+fitStars();
+
+let stars=[];
+function initStars(){
+  stars=[];
+  const count = Math.round((w*h)/1600);
+  for(let i=0;i<count;i++){
+    stars.push({
+      x:Math.random()*w,
+      y:Math.random()*h,
+      r:Math.random()*1.3+0.2,
+      a:Math.random()*0.9+0.1,
+      t:Math.random()*0.02+0.001
+    });
+  }
+}
+function drawStars(){
+  starCtx.clearRect(0,0,w,h);
+  for(const s of stars){
+    s.a += (Math.random()>0.5?1:-1)*s.t;
+    s.a = Math.max(0.05, Math.min(1, s.a));
+    starCtx.beginPath();
+    starCtx.globalAlpha = s.a;
+    starCtx.fillStyle="#fff";
+    starCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    starCtx.fill();
+  }
+  starCtx.globalAlpha=1;
+  requestAnimationFrame(drawStars);
+}
+initStars();
+drawStars();
+/* ================== HẾT NỀN SAO ================== */
+
+
+/* ================== HIỆU ỨNG HẠT (NHẸ, KHÔNG LAG) ================== */
+const fxCanvas = document.getElementById("fx-canvas");
+const fxCtx = fxCanvas.getContext("2d");
+
+function fitFx(){
+  fxCanvas.width = innerWidth;
+  fxCanvas.height = innerHeight;
+}
+fitFx();
+addEventListener("resize", fitFx);
+
+const MAX_PARTICLES = 500;
+const particles = [];
+for(let i=0;i<MAX_PARTICLES;i++){
+  particles.push({
+    active:false, x:0,y:0,vx:0,vy:0,life:0,maxLife:0,size:1,spin:0,rot:0
+  });
+}
+
+function spawnBurst(x,y, count=22){
+  for(let i=0;i<count;i++){
+    const p = particles.find(pp => !pp.active);
+    if(!p) return;
+
+    const ang = Math.random()*Math.PI*2;
+    const spd = 1.2 + Math.random()*2.2;
+
+    p.active = true;
+    p.x = x; p.y = y;
+    p.vx = Math.cos(ang)*spd;
+    p.vy = Math.sin(ang)*spd - 0.6;
+    p.life = 0;
+    p.maxLife = 35 + Math.random()*20;
+    p.size = 0.8 + Math.random()*1.8;
+    p.spin = (Math.random()*0.2 - 0.1);
+    p.rot = Math.random()*Math.PI*2;
+  }
+}
+
+function updateFx(){
+  const W = fxCanvas.width, H = fxCanvas.height;
+  fxCtx.clearRect(0,0,W,H);
+
+  for(const p of particles){
+    if(!p.active) continue;
+
+    p.life++;
+    if(p.life >= p.maxLife){
+      p.active = false;
+      continue;
+    }
+
+    p.vy += 0.03;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.spin;
+
+    const t = 1 - p.life/p.maxLife;
+    fxCtx.globalAlpha = t;
+
+    fxCtx.save();
+    fxCtx.translate(p.x, p.y);
+    fxCtx.rotate(p.rot);
+    fxCtx.strokeStyle = "#fff";
+    fxCtx.lineWidth = 1;
+    fxCtx.beginPath();
+    fxCtx.moveTo(-p.size, 0);
+    fxCtx.lineTo( p.size, 0);
+    fxCtx.moveTo(0, -p.size);
+    fxCtx.lineTo(0,  p.size);
+    fxCtx.stroke();
+    fxCtx.restore();
+  }
+
+  fxCtx.globalAlpha = 1;
+  requestAnimationFrame(updateFx);
+}
+updateFx();
+/* ================== HẾT HẠT ================== */
+
+
+const scene = document.getElementById("scene");
+const animal = document.getElementById("animal");
+
+/* ================== ẨN/HIỆN CON VẬT ================== */
+function hideAnimal(){
+  animal.style.transition = "opacity .6s ease, transform .6s ease";
+  animal.style.opacity = "0";
+  animal.style.transform = "translateY(40px)";
+}
+function showAnimal(){
+  animal.style.transition = "opacity .6s ease, transform .6s ease";
+  animal.style.opacity = "1";
+  animal.style.transform = "translateY(0)";
+}
+/* ================== HẾT ẨN/HIỆN ================== */
+
+
+/* ================== MAP 3-2-1 ================== */
+const NUMBER_MAPS = {
+  3:[
+    "001111111110000","001111111111000","011100000011100","011000000001100",
+    "000000000001100","000001111111100","000001111111100","000000000001100",
+    "011000000001100","011100000011100","001111111111000","000111111110000"
+  ],
+  2:[
+    "001111111111100","001111111111110","011100000001110","011000000000110",
+    "000000000000110","000000000001100","000000000011000","000000001110000",
+    "000000111000000","000011100000000","001111111111110","011111111111110"
+  ],
+  1:[
+    "000001111110000","000001111110000","000011001110000","000110001110000",
+    "001100001110000","000000001110000","000000001110000","000000001110000",
+    "000000001110000","000000001110000","000000001110000","000000001110000",
+    "000000001110000","000011111111100","000011111111100"
+  ]
+};
+
+const GRID_SIZE = 18;
+const ICONS = ["❤️"];
+
+function getAnimalPosition() {
+  const rect = animal.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width * 0.75,
+    y: rect.top + rect.height * 0.60
+  };
+}
+
+function getOffsets(map){
+  const heightPx = map.length * GRID_SIZE;
+  const widthPx = map[0].length * GRID_SIZE;
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  return {
+    x: (W - widthPx) / 2,
+    y: (H - heightPx) / 2 - 40
+  };
+}
+
+function buildPoints(num){
+  const map = NUMBER_MAPS[num];
+  const pts = [];
+  const offset = getOffsets(map);
+
+  for (let y=0; y<map.length; y++){
+    for (let x=0; x<map[y].length; x++){
+      if (map[y][x] === "1"){
+        pts.push({
+          x: offset.x + x*GRID_SIZE,
+          y: offset.y + y*GRID_SIZE
+        });
+      }
+    }
+  }
+  return pts;
+}
+
+/* ================== BẮN TIM (CHỈ CHO 3-2-1) ================== */
+function shootHeart(target){
+  const heart = document.createElement("div");
+  heart.className = "heart";
+  heart.textContent = ICONS[0];
+  scene.appendChild(heart);
+
+  const animalPos = getAnimalPosition();
+  const startX = animalPos.x;
+  const startY = animalPos.y;
+
+  const cp1 = {x: startX + (Math.random()*120 - 60), y: startY - 200};
+  const cp2 = {x: target.x + (Math.random()*120 - 60), y: target.y + 80};
+
+  let t = 0;
+  const speed = 0.04 + Math.random()*0.02;
+
+  const move = setInterval(()=>{
+    t += speed;
+    if (t >= 1){
+      t = 1;
+      clearInterval(move);
+      spawnBurst(target.x, target.y, 18);
+    }
+
+    const x = (1-t)**3 * startX
+            + 3*(1-t)**2 * t * cp1.x
+            + 3*(1-t) * t**2 * cp2.x
+            + t**3 * target.x;
+
+    const y = (1-t)**3 * startY
+            + 3*(1-t)**2 * t * cp1.y
+            + 3*(1-t) * t**2 * cp2.y
+            + t**3 * target.y;
+
+    heart.style.transform =
+      `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+  }, 16);
+}
+
+function clearHearts(){
+  document.querySelectorAll(".heart").forEach(h => h.remove());
+}
+
+/* ================== CHỮ DẠNG CHẤM TRẮNG ================== */
+const dotsCanvas = document.getElementById("dots-canvas");
+const dctx = dotsCanvas.getContext("2d");
+
+function fitDots(){
+  dotsCanvas.width = innerWidth;
+  dotsCanvas.height = innerHeight;
+}
+fitDots();
+addEventListener("resize", fitDots);
+
+const textCanvas = document.createElement("canvas");
+const textCtx = textCanvas.getContext("2d");
+
+function buildDotPoints(text){
+  const W = innerWidth, H = innerHeight;
+  textCanvas.width = W;
+  textCanvas.height = H;
+  textCtx.clearRect(0,0,W,H);
+
+  const isHB = text === "HAPPY BIRTHDAY";
+  const isMH = text === "MINH HÂN";
+  const lines = isHB ? ["HAPPY", "BIRTHDAY"] : [text];
+
+  let fontSize = isMH
+    ? Math.min(W * 0.22, 200)
+    : Math.min(W * 0.20, 180);
+
+  textCtx.textAlign = "center";
+  textCtx.textBaseline = "middle";
+
+  while(fontSize > 20){
+    textCtx.font = `900 ${fontSize}px sans-serif`;
+    const maxWidth = Math.max(...lines.map(l => textCtx.measureText(l).width));
+    if(maxWidth <= W * 0.85) break;
+    fontSize -= 4;
+  }
+
+  const lineHeight = fontSize * 1.15;
+  const startY = H/2 - (lines.length - 1)*lineHeight/2;
+
+  textCtx.lineWidth = Math.max(3, fontSize * 0.06);
+  textCtx.strokeStyle = "#fff";
+  textCtx.fillStyle = "#fff";
+
+  lines.forEach((line, idx) => {
+    const y = startY + idx*lineHeight;
+    textCtx.strokeText(line, W/2, y);
+    textCtx.fillText(line, W/2, y);
+  });
+
+  const img = textCtx.getImageData(0,0,W,H).data;
+  const pts = [];
+  const step = isMH ? 10 : 12;
+
+  for(let y=0; y<H; y+=step){
+    for(let x=0; x<W; x+=step){
+      const idx = (y*W + x)*4;
+      if(img[idx+3] > 40) pts.push({x, y});
+    }
+  }
+  return pts;
+}
+
+function showDotText(text, duration=2200){
+  const pts = buildDotPoints(text);
+  const W = innerWidth, H = innerHeight;
+  const start = performance.now();
+
+  function draw(now){
+    const t = (now - start) / duration;
+    const alpha = t < 0.15 ? t/0.15 : (t > 0.85 ? (1-t)/0.15 : 1);
+
+    dctx.clearRect(0,0,W,H);
+    dctx.globalAlpha = alpha;
+    dctx.fillStyle = "#fff";
+
+    for(const p of pts){
+      dctx.beginPath();
+      dctx.arc(p.x, p.y, 2.1, 0, Math.PI*2);
+      dctx.fill();
+    }
+
+    dctx.globalAlpha = 1;
+    if(t < 1) requestAnimationFrame(draw);
+    else dctx.clearRect(0,0,W,H);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+/* ================== SEQUENCE ================== */
+const sequence = [3,2,1,"13 - 12","HAPPY BIRTHDAY","MINH HÂN"];
+let stepSeq = 0;
+
+function startSequence(){
+  if(stepSeq >= sequence.length) return;
+
+  const item = sequence[stepSeq];
+
+  if(typeof item === "number"){
+    const points = buildPoints(item);
+    let i = 0;
+
+    const timer = setInterval(()=>{
+      if(i >= points.length){
+        clearInterval(timer);
+        setTimeout(()=>{
+          clearHearts();
+
+          // ✅ xong số 1 thì ẩn con vật
+          if(item === 1) hideAnimal();
+
+          stepSeq++;
+          startSequence();
+        }, 700);
+        return;
+      }
+
+      for(let k=0; k<6; k++){
+        setTimeout(()=>shootHeart(points[i]), k*8);
+      }
+      i++;
+    }, 20);
+  } else {
+    showDotText(item, 2400);
+    setTimeout(()=>{
+      stepSeq++;
+      startSequence();
+    }, 2600);
+  }
+}
+
+/* ================== NHẠC NỀN + CLICK START ================== */
+const bgMusic = document.getElementById("bg-music");
+const tapStart = document.getElementById("tap-start");
+
+// thử autoplay muted khi vào web (nhẹ)
+window.addEventListener("load", ()=>{
+  bgMusic.volume = 0.6;
+  bgMusic.muted = true;
+  bgMusic.play().catch(()=>{});
+});
+
+// click/chạm 1 lần: bật tiếng + chạy từ số 3
+function startByClick(){
+  tapStart.classList.add("hide");
+
+  bgMusic.muted = false;
+  bgMusic.play().catch(()=>{});
+
+  stepSeq = 0;
+  clearHearts();
+  showAnimal();
+
+  startSequence();
+}
+
+tapStart.addEventListener("click", startByClick, { once:true });
+tapStart.addEventListener("touchstart", startByClick, { once:true });
+/* ================== HẾT NHẠC + START ================== */
+</script>
+
+</body>
+</html>

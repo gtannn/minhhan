@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Begin → Cake</title>
+
+  <style>
+    html, body{
+      margin:0; height:100%; overflow:hidden; background:#000;
+    }
+
+    /* 2 trang full màn chồng lên nhau */
+    .page{
+      position:fixed; inset:0; width:100%; height:100%;
+      opacity:0; transform:scale(1.05);
+      pointer-events:none; z-index:0;
+      transition: opacity 1.2s ease, transform 1.2s ease;
+      background:#000;
+    }
+    .page.active{
+      opacity:1; transform:scale(1);
+      pointer-events:auto; z-index:2;
+    }
+
+    iframe{
+      width:100%; height:100%; border:0; display:block;
+      background:transparent;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: BEGIN -->
+  <div class="page active" id="page-begin">
+    <iframe id="frame-begin" allow="autoplay"></iframe>
+  </div>
+
+  <!-- PAGE 2: CAKE -->
+  <div class="page" id="page-cake">
+    <iframe id="frame-cake" allow="autoplay"></iframe>
+  </div>
+
+  <script>
+    // ====== CHỈNH THỜI GIAN BEGIN Ở ĐÂY (ms) ======
+    // begin.html của bạn chạy 3-2-1 + chữ khoảng ~16s
+    const BEGIN_DURATION = 16000;
+
+    const pageBegin  = document.getElementById("page-begin");
+    const pageCake   = document.getElementById("page-cake");
+    const frameBegin = document.getElementById("frame-begin");
+    const frameCake  = document.getElementById("frame-cake");
+
+    // ✅ Nếu begin.html và cake.html nằm trong folder: /birthdaycake/
+    // Ví dụ cấu trúc:
+    //   /index.html
+    //   /birthdaycake/begin.html
+    //   /birthdaycake/cake.html
+    frameBegin.src = "birthdaycake/begin.html";
+
+    function switchToCake(){
+      // unload Begin để dừng canvas/nhạc => đỡ lag
+      frameBegin.src = "about:blank";
+
+      // fade/zoom chuyển cảnh
+      pageBegin.classList.remove("active");
+      pageCake.classList.add("active");
+
+      // load Cake sau khi chuyển
+      frameCake.src = "birthdaycake/cake.html";
+    }
+
+    setTimeout(switchToCake, BEGIN_DURATION);
+  </script>
+</body>
+</html>

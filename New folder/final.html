@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Begin → Cake</title>
+
+  <style>
+    html, body{
+      margin:0; height:100%; overflow:hidden; background:#000;
+    }
+
+    .page{
+      position:fixed; inset:0; width:100%; height:100%;
+      opacity:0; transform:scale(1.05);
+      pointer-events:none; z-index:0;
+      transition: opacity 1.2s ease, transform 1.2s ease;
+      background:#000;
+    }
+    .page.active{
+      opacity:1; transform:scale(1);
+      pointer-events:auto; z-index:2;
+    }
+
+    iframe{
+      width:100%; height:100%; border:0; display:block;
+      background:transparent;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: BEGIN -->
+  <div class="page active" id="page-begin">
+    <iframe id="frame-begin" allow="autoplay"></iframe>
+  </div>
+
+  <!-- PAGE 2: CAKE -->
+  <div class="page" id="page-cake">
+    <iframe id="frame-cake" allow="autoplay"></iframe>
+  </div>
+
+  <script>
+    const BEGIN_DURATION = 16000;
+
+    const pageBegin  = document.getElementById("page-begin");
+    const pageCake   = document.getElementById("page-cake");
+    const frameBegin = document.getElementById("frame-begin");
+    const frameCake  = document.getElementById("frame-cake");
+
+    // ✅ final.html nằm trong "New folder" nên phải lùi ra 1 cấp
+    frameBegin.src = "../begin.html";
+
+    function switchToCake(){
+      frameBegin.src = "about:blank";
+      pageBegin.classList.remove("active");
+      pageCake.classList.add("active");
+      frameCake.src = "../cake.html";
+    }
+
+    setTimeout(switchToCake, BEGIN_DURATION);
+  </script>
+</body>
+</html>

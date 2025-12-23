@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gift Box Full Screen Stickers</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width:100%; height:100%; margin:0; }
+
+    body{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(900px circle at 50% -20%, #2a2f66 0%, transparent 55%),
+        radial-gradient(1200px circle at 50% 120%, #0b1027 0%, #060814 55%, #03040a 100%);
+      font-family: system-ui, sans-serif;
+      overflow:hidden;
+    }
+
+    .stage{
+      position: fixed;
+      inset: 0;
+      width:100vw;
+      height:100vh;
+      display:grid;
+      place-items:center;
+      perspective: 1200px;
+    }
+
+    :root{
+      --s: clamp(0.7, 0.9vw + 0.6, 1.35);
+    }
+    .gift-wrap{
+      transform: scale(var(--s));
+      transform-origin: center;
+    }
+
+    .glow{
+      position:absolute;
+      width: 340px; height: 120px;
+      bottom: 8vh; left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(closest-side, rgba(255,210,120,.55), transparent 70%);
+      filter: blur(22px);
+      opacity:.85;
+      pointer-events:none;
+    }
+
+    .gift{
+      position:relative; width: 300px; height: 280px;
+      animation: breathe 2.8s ease-in-out infinite;
+      filter: drop-shadow(0 20px 34px rgba(0,0,0,.55));
+      transform-style: preserve-3d;
+    }
+    @keyframes breathe{
+      0%,100%{ transform: translateY(0) scale(1); }
+      50%{ transform: translateY(-7px) scale(1.01); }
+    }
+
+    .lid{
+      position:absolute; top:22px; left:50%;
+      transform: translateX(-50%) rotateX(0deg);
+      transform-origin: 50% 100%;
+      width: 325px; height: 90px; border-radius: 16px;
+      background: linear-gradient(180deg, #ff7aa8 0%, #ff4f87 60%, #e73a72 100%);
+      box-shadow:
+        inset 0 10px 0 rgba(255,255,255,.25),
+        inset 0 -10px 0 rgba(0,0,0,.08),
+        0 12px 20px rgba(0,0,0,.25);
+      z-index:6; cursor:pointer;
+      will-change: transform, top, opacity;
+      animation:none;
+    }
+    .lid::after{
+      content:""; position:absolute; left:12px; right:12px;
+      bottom:-10px; height:22px; border-radius:0 0 12px 12px;
+      background: linear-gradient(180deg, #e63c73, #c92c5b);
+      opacity:.9;
+    }
+    .lid.gone{
+      display:none !important;
+      box-shadow:none !important;
+    }
+
+    @keyframes flyAway{
+      0%   { top:22px;  opacity:1;   transform: translateX(-50%) rotateX(0) rotateZ(0) scale(1); }
+      35%  { top:-10px; opacity:1;   transform: translateX(-50%) rotateX(85deg) rotateZ(6deg) scale(1.02); }
+      70%  { top:-140px;opacity:.45; transform: translateX(-50%) rotateX(140deg) rotateZ(14deg) scale(1.06); }
+      100% { top:-240px;opacity:0;   transform: translateX(-50%) rotateX(160deg) rotateZ(18deg) scale(1.08); }
+    }
+    @keyframes fallBack{
+      0%   { top:-240px; opacity:0; transform: translateX(-50%) rotateX(160deg) rotateZ(18deg) scale(1.08); }
+      35%  { top:-90px;  opacity:.9; transform: translateX(-50%) rotateX(100deg) rotateZ(8deg) scale(1.03); }
+      70%  { top:28px;   opacity:1;  transform: translateX(-50%) rotateX(-6deg) rotateZ(0) scale(1); }
+      100% { top:22px;   opacity:1;  transform: translateX(-50%) rotateX(0) rotateZ(0) scale(1); }
+    }
+
+    .box{
+      position:absolute; bottom:10px; left:50%;
+      transform: translateX(-50%);
+      width: 300px; height:185px; border-radius:0 0 20px 20px;
+      background: linear-gradient(180deg, #ff6f9d 0%, #ff4a86 70%, #e73a72 100%);
+      box-shadow: inset 0 18px 0 rgba(255,255,255,.10),
+                  inset 0 -18px 0 rgba(0,0,0,.10);
+      overflow:hidden; z-index:2; cursor:pointer;
+    }
+
+    .ribbon-v{
+      position:absolute; left:50%; top:-10px;
+      transform: translateX(-50%);
+      width:68px; height:175%;
+      background: linear-gradient(180deg, #ffd36a 0%, #ffb84d 55%, #f39b2f 100%);
+      box-shadow: inset 9px 0 0 rgba(255,255,255,.25),
+                  inset -9px 0 0 rgba(0,0,0,.08);
+      z-index:3;
+    }
+    .ribbon-h{
+      position:absolute; top:52px; left:-8px;
+      width: calc(100% + 16px); height:68px;
+      background: linear-gradient(90deg, #ffd36a 0%, #ffb84d 55%, #f39b2f 100%);
+      box-shadow: inset 0 9px 0 rgba(255,255,255,.22),
+                  inset 0 -9px 0 rgba(0,0,0,.08);
+      z-index:3;
+    }
+
+    .bow{
+      position:absolute; top:-8px; left:50%;
+      transform: translateX(-50%);
+      width:190px; height:120px; z-index:7;
+      transition: transform .6s ease, opacity .35s ease;
+      pointer-events:none;
+    }
+    .bow .loop{
+      position:absolute; top:0; width:98px; height:98px;
+      background: radial-gradient(circle at 30% 30%, #ffe8a8 0%, #ffc95a 55%, #f2a23a 100%);
+      border-radius: 20px 80px 80px 80px;
+      box-shadow: inset 0 0 0 7px rgba(255,255,255,.18),
+                  0 10px 12px rgba(0,0,0,.25);
+    }
+    .bow .loop.left{ left:0; transform: rotate(38deg); }
+    .bow .loop.right{ right:0; transform: rotate(-38deg) scaleX(-1); }
+    .bow .knot{
+      position:absolute; left:50%; top:34px; transform: translateX(-50%);
+      width:42px; height:42px; border-radius:9px;
+      background: linear-gradient(180deg, #ffcf69, #f29a35);
+      box-shadow: inset 0 0 0 5px rgba(255,255,255,.2),
+                  0 7px 9px rgba(0,0,0,.25);
+    }
+    .bow .tail{
+      position:absolute; top:74px; width:44px; height:64px;
+      background: linear-gradient(180deg, #ffd36a 0%, #ffb84d 60%, #f19a30 100%);
+      border-radius:0 0 14px 14px;
+      clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+      filter: drop-shadow(0 7px 7px rgba(0,0,0,.25));
+    }
+    .bow .tail.left{ left:60px; transform: rotate(8deg); }
+    .bow .tail.right{ right:60px; transform: rotate(-8deg); }
+
+    .gift.open .bow{
+      transform: translateX(-50%) translateY(-60px) scale(.9);
+      opacity:0;
+    }
+
+    .surprise{
+      position:absolute; left:50%; bottom:200px;
+      transform: translateX(-50%) translateY(40px) scale(.2);
+      width:170px; height:110px; z-index:4; opacity:0;
+      pointer-events:none;
+      will-change: transform, opacity;
+    }
+    .surprise-card{
+      width:100%; height:100%; border-radius:16px;
+      background: radial-gradient(circle at 30% 20%, #fff, #ffe9c8 60%, #ffdba3 100%);
+      box-shadow: 0 16px 28px rgba(0,0,0,.35),
+                  inset 0 6px 0 rgba(255,255,255,.9);
+      display:grid; place-items:center;
+      font-weight:700; color:#a24a00; text-align:center;
+      padding:14px; font-size:22px;
+    }
+    @keyframes popOut{
+      0%   { opacity:0; transform: translateX(-50%) translateY(60px) scale(.2); }
+      55%  { opacity:1; transform: translateX(-50%) translateY(-85px) scale(1.1); }
+      100% { opacity:1; transform: translateX(-50%) translateY(-75px) scale(1); }
+    }
+    @keyframes hideBack{
+      0%   { opacity:1; transform: translateX(-50%) translateY(-28px) scale(1); }
+      100% { opacity:0; transform: translateX(-50%) translateY(40px) scale(.2); }
+    }
+
+    .confetti-layer{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      pointer-events:none;
+      z-index:9999;
+    }
+    .confetti{
+      position:absolute; width:8px; height:14px; border-radius:2px;
+      opacity:0; will-change: transform, opacity;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall{
+      0%   { opacity:1; transform: translate3d(var(--x0), var(--y0), 0) rotate(0deg); }
+      100% { opacity:1; transform: translate3d(var(--x1), var(--y1), 0) rotate(var(--rot)); }
+    }
+
+    .sticker-layer{
+      position: fixed;
+      inset: 0;
+      width:100vw;
+      height:100vh;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    .sticker{
+      position: absolute;
+      width: 110px;
+      height: auto;
+
+      opacity: 0;
+      transform: translate3d(var(--x0), var(--y0), 0) scale(.4) rotate(0deg);
+      will-change: transform, opacity;
+      animation: stickerFly linear forwards;
+
+      filter:
+        drop-shadow(0 10px 18px rgba(0,0,0,.35))
+        drop-shadow(0 0 16px rgba(90,120,255,.35))
+        saturate(1.12)
+        contrast(1.05)
+        brightness(0.98);
+
+      mix-blend-mode: screen;
+      opacity: .985;
+
+      -webkit-mask-image: radial-gradient(circle at center, black 72%, transparent 100%);
+      mask-image: radial-gradient(circle at center, black 72%, transparent 100%);
+    }
+
+    @keyframes stickerFly{
+      0%{
+        opacity: 0;
+        transform: translate3d(var(--x0), var(--y0), 0) scale(.25) rotate(0deg);
+      }
+      15%{
+        opacity: 1;
+        transform: translate3d(var(--xMid), var(--yMid), 0) scale(1.05) rotate(var(--rotMid));
+      }
+      100%{
+        opacity: 1;
+        transform: translate3d(var(--x1), var(--y1), 0) scale(var(--scaleEnd)) rotate(var(--rotEnd));
+      }
+    }
+
+    .hint{
+      position: fixed;
+      bottom: 3vh; left:50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,.75);
+      font-size: 14px;
+      user-select:none;
+      pointer-events:none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ Autoplay muted để vượt chặn autoplay -->
+  <audio id="bg-music" autoplay loop muted>
+    <source src="1.mp3" type="audio/mp3">
+  </audio>
+
+  <div class="stage">
+    <div class="glow"></div>
+
+    <div class="confetti-layer" id="confettiLayer"></div>
+    <div class="sticker-layer" id="stickerLayer"></div>
+
+    <div class="gift-wrap">
+      <div class="gift" id="gift">
+
+        <div class="bow">
+          <div class="loop left"></div>
+          <div class="loop right"></div>
+          <div class="knot"></div>
+          <div class="tail left"></div>
+          <div class="tail right"></div>
+        </div>
+
+        <div class="lid" id="lid" title="Bấm để mở nắp"></div>
+
+        <div class="surprise" id="surprise"></div>
+
+        <div class="box" id="box" title="Bấm để reset">
+          <div class="ribbon-v"></div>
+          <div class="ribbon-h"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint">Ấn nắp để mở — Ân hộp để reset</div>
+  </div>
+
+  <script>
+    const gift = document.getElementById("gift");
+    const lid  = document.getElementById("lid");
+    const box  = document.getElementById("box");
+    const surprise = document.getElementById("surprise");
+    const confettiLayer = document.getElementById("confettiLayer");
+    const stickerLayer = document.getElementById("stickerLayer");
+
+    // ✅ MUSIC
+    const bgMusic = document.getElementById("bg-music");
+
+    let isOpen = false;
+    let stickerInterval = null;
+
+    function playLid(anim, dur="1s"){
+      lid.classList.remove("gone");
+      lid.style.animation = "none";
+      lid.offsetHeight;
+      lid.style.animation = `${anim} ${dur} cubic-bezier(.2,.9,.2,1) forwards`;
+    }
+
+    lid.addEventListener("animationend", (e) => {
+      if (e.animationName === "flyAway") {
+        lid.classList.add("gone");
+      }
+    });
+
+    function popSurprise(){
+      surprise.style.animation = "none";
+      surprise.offsetHeight;
+      surprise.style.animation = "popOut .9s cubic-bezier(.2,.9,.2,1) forwards";
+    }
+    function hideSurprise(){
+      surprise.style.animation = "none";
+      surprise.offsetHeight;
+      surprise.style.animation = "hideBack .35s ease forwards";
+    }
+
+    function burstConfetti(count=120){
+      const colors=["#ff6b6b","#ffd93d","#6bcBff","#95f985","#c77dff","#ff9f1c","#f72585","#4cc9f0"];
+      const rect = gift.getBoundingClientRect();
+      const originX = rect.left + rect.width/2;
+      const originY = rect.top + rect.height*0.2;
+
+      for(let i=0;i<count;i++){
+        const p=document.createElement("div");
+        p.className="confetti";
+        p.style.background=colors[Math.floor(Math.random()*colors.length)];
+
+        const x0=(originX+(Math.random()-0.5)*50)+"px";
+        const y0=(originY+(Math.random()-0.5)*30)+"px";
+
+        const x1 = Math.random() * window.innerWidth;
+        const y1 = Math.random() * window.innerHeight;
+
+        p.style.setProperty("--x0", x0);
+        p.style.setProperty("--y0", y0);
+        p.style.setProperty("--x1", `${x1}px`);
+        p.style.setProperty("--y1", `${y1}px`);
+        p.style.setProperty("--rot",(Math.random()*1080-540)+"deg");
+
+        p.style.animationDuration=(1.6+Math.random()*1.4)+"s";
+        p.style.animationTimingFunction="cubic-bezier(.1,.7,.1,1)";
+        confettiLayer.appendChild(p);
+        p.addEventListener("animationend",()=>p.remove());
+      }
+    }
+
+    const STICKERS = [
+      "img1.png","img2.png","img3.png","img4.png","img5.png",
+      "img6.png","img7.png","img8.png","img9.png","img10.png",
+      "img11.png","img12.png","img13.png","img14.png","img15.png",
+      "img16.png","img17.png","img18.png","img19.png","img20.png",
+      "img21.png","img22.png","img23.png","img24.png","img25.png"
+    ];
+
+    const _preload = [];
+    STICKERS.forEach(src=>{
+      const im = new Image();
+      im.src = src;
+      _preload.push(im);
+    });
+
+    const isMobile = window.innerWidth < 768;
+    const STICKERS_PER_BURST = isMobile ? 7 : 12;
+
+    function burstStickers(){
+      const rect = gift.getBoundingClientRect();
+      const originX = rect.left + rect.width/2;
+      const originY = rect.top + rect.height*0.18;
+
+      for (let i = 0; i < STICKERS_PER_BURST; i++){
+        const src = STICKERS[Math.floor(Math.random()*STICKERS.length)];
+        const img = document.createElement("img");
+        img.className = "sticker";
+        img.src = src;
+
+        img.onerror = () => img.remove();
+
+        const x0 = originX + (Math.random()-0.5)*60;
+        const y0 = originY + (Math.random()-0.5)*40;
+
+        const xMid = x0 + (Math.random()-0.5)*320;
+        const yMid = y0 - (180 + Math.random()*180);
+
+        const x1 = Math.random() * window.innerWidth;
+        const y1 = Math.random() * window.innerHeight;
+
+        img.style.setProperty("--x0", `${x0}px`);
+        img.style.setProperty("--y0", `${y0}px`);
+        img.style.setProperty("--xMid", `${xMid}px`);
+        img.style.setProperty("--yMid", `${yMid}px`);
+        img.style.setProperty("--x1", `${x1}px`);
+        img.style.setProperty("--y1", `${y1}px`);
+
+        img.style.setProperty("--rotMid", `${Math.random()*120-60}deg`);
+        img.style.setProperty("--rotEnd", `${Math.random()*260-130}deg`);
+
+        const scaleEnd = 0.8 + Math.random()*0.5;
+        img.style.setProperty("--scaleEnd", scaleEnd);
+
+        img.style.animationDuration = (1.6 + Math.random()*1.0) + "s";
+        img.style.animationTimingFunction = "cubic-bezier(.12,.8,.12,1)";
+
+        stickerLayer.appendChild(img);
+        img.addEventListener("animationend", () => img.remove());
+      }
+    }
+
+    function startStickerLoop(){
+      if (stickerInterval) return;
+      burstStickers();
+      stickerInterval = setInterval(burstStickers, 1100);
+    }
+    function stopStickerLoop(){
+      clearInterval(stickerInterval);
+      stickerInterval = null;
+    }
+
+    // ✅ BẬT TIẾNG SAU 1 LẦN CHẠM BẤT KỲ (autoplay policy)
+    function enableSoundOnce(){
+      bgMusic.muted = false;
+      bgMusic.volume = 0.8;
+      bgMusic.play().catch(()=>{});
+      window.removeEventListener("pointerdown", enableSoundOnce);
+      window.removeEventListener("keydown", enableSoundOnce);
+    }
+    window.addEventListener("pointerdown", enableSoundOnce);
+    window.addEventListener("keydown", enableSoundOnce);
+
+    lid.addEventListener("click", () => {
+      if (isOpen) return;
+      isOpen = true;
+      gift.classList.add("open");
+
+      // ✅ chắc chắn play khi mở nắp
+      bgMusic.muted = false;
+      bgMusic.volume = 0.8;
+      bgMusic.play().catch(()=>{});
+
+      playLid("flyAway","1.05s");
+      setTimeout(popSurprise, 450);
+      setTimeout(() => burstConfetti(140), 520);
+      setTimeout(startStickerLoop, 480);
+    });
+
+    box.addEventListener("click", () => {
+      if (!isOpen) return;
+      isOpen = false;
+      gift.classList.remove("open");
+
+      hideSurprise();
+      lid.classList.remove("gone");
+      playLid("fallBack","0.95s");
+
+      stopStickerLoop();
+
+      // (tuỳ chọn) reset thì tắt nhạc
+      // bgMusic.pause();
+      // bgMusic.currentTime = 0;
+    });
+
+    window.addEventListener("resize", () => {});
+  </script>
+</body>
+</html>
